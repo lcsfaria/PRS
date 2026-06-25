@@ -1,7 +1,3 @@
-# Projeto PRS e Ancestralidade
-
-Este repositório contém um pipeline para padronização de *Summary Statistics* (SumStats) e orquestração de análises genéticas integrando dados de VCF e Inferência de Ancestralidade Local (LAI).
-
 ## Instalação
 
 Clone o repositório e crie o ambiente virtual utilizando o `conda` para garantir que todas as dependências necessárias sejam instaladas corretamente:
