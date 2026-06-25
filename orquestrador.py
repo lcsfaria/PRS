@@ -19,30 +19,43 @@ def executa(comando):
     subprocess.run(comando, shell=True, check=True)
 
 def ensure_uncompressed_vcf(vcf_file, temp_dir):
-    if not vcf_file.endswith('.gz'):
+    if not vcf_file.endswith(".gz"):
         return vcf_file, False
 
     os.makedirs(temp_dir, exist_ok=True)
-    uncompressed_vcf = os.path.join(temp_dir, os.path.basename(vcf_file).replace('.vcf.gz', '.vcf'))
+
+    uncompressed_vcf = os.path.join(temp_dir, os.path.basename(vcf_file).replace(".vcf.gz", ".vcf"))
 
     if os.path.exists(uncompressed_vcf):
         return uncompressed_vcf, False
 
-    print(f"Descompactando VCF para uso do vcf_maker: {vcf_file} -> {uncompressed_vcf}")
-    with gzip.open(vcf_file, 'rt') as fin, open(uncompressed_vcf, 'wt') as fout:
-        shutil.copyfileobj(fin, fout)
+    print(f"Descompactando VCF para uso do vcf_maker:\n" f"  {vcf_file}\n"  f"  -> {uncompressed_vcf}")
+
+    with open(uncompressed_vcf, "wb") as fout:
+        subprocess.run(["gunzip", "-c", vcf_file],stdout=fout,check=True)
 
     return uncompressed_vcf, True
 
 def resolve_vcf_file(vcf_pattern, temp_dir):
-    if not vcf_pattern.endswith('.gz') and os.path.exists(vcf_pattern):
-        return vcf_pattern, False
-    if os.path.exists(vcf_pattern + '.gz'):
-        uncompressed, was_decompressed = ensure_uncompressed_vcf(vcf_pattern + '.gz', temp_dir)
-        return uncompressed, was_decompressed
+
+    if vcf_pattern.endswith('.gz'):
+        print('Arquivo VCF compactado fornecido. Tentando descompactar...')
+        if os.path.exists(vcf_pattern):
+            return ensure_uncompressed_vcf(vcf_pattern, temp_dir)
+        raise FileNotFoundError(f"Não encontrado: {vcf_pattern}")
+
+    # usuário passou .vcf
     if os.path.exists(vcf_pattern):
+        print('Arquivo VCF descompactado fornecido. Usando diretamente...')
         return vcf_pattern, False
-    raise FileNotFoundError(f"Não encontrado: {vcf_pattern} ou {vcf_pattern}.gz")
+
+    # existe apenas a versão comprimida
+    if os.path.exists(vcf_pattern + '.gz'):
+        return ensure_uncompressed_vcf(vcf_pattern + '.gz', temp_dir)
+
+    raise FileNotFoundError(
+        f"Não encontrado: {vcf_pattern} ou {vcf_pattern}.gz"
+    )
 
 def vcf_maker(ancestry_splitter, vcf_file, msp_file, output_folder, project_name, chrom):
     comando = f'python {ancestry_splitter} --vcf {vcf_file} --msp {msp_file} --output_prefix {output_folder}/{project_name}_Chr{chrom}'
