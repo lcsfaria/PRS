@@ -1,4 +1,4 @@
-name: genomics_env
+name: prs_env
 channels:
   - conda-forge
   - bioconda
