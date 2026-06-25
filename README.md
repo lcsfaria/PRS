@@ -2,7 +2,7 @@
 
 Este repositório contém um pipeline para padronização de *Summary Statistics* (SumStats) e orquestração de análises genéticas integrando dados de VCF e Inferência de Ancestralidade Local (LAI).
 
-## 🚀 Instalação
+## Instalação
 
 Clone o repositório e crie o ambiente virtual utilizando o `conda` para garantir que todas as dependências necessárias sejam instaladas corretamente:
 
@@ -13,7 +13,7 @@ conda activate <nome_do_seu_ambiente>
 
 ---
 
-## 🛠️ Como Usar
+## Como Usar
 
 O fluxo de trabalho é dividido em três etapas principais: Controle de Qualidade (QC) das SumStats, configuração dos parâmetros do projeto e execução do orquestrador.
 
