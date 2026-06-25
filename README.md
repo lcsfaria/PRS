@@ -8,7 +8,7 @@ Clone o repositório e crie o ambiente virtual utilizando o `conda` para garanti
 
 ```bash
 conda env create -f environment.yml
-conda activate <nome_do_seu_ambiente>
+conda activate prs_env
 ```
 
 ---
