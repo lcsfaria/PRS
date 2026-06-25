@@ -53,8 +53,8 @@ python qc_sumstat.py --input gwas_raw.txt --output gwas_qced.txt --snp-col rsID 
 Complete o arquivo `config.ini` com os caminhos dos seus dados e definições de colunas. 
 
 > **Avisos Importantes:**
-> * **Curinga de Cromossomo (`@`):** Nos campos `VCF_FILE` e `MSP_FILE`, utilize o caractere `@` no lugar do número do cromossomo. O orquestrador fará a substituição automaticamente.
-> * **Nomenclatura de Populações:** No campo `SUMSTATS_FILE_ANCESTRY`, o nome da população mapeada (ex: `AFR`, `EUR`) **precisa** ser idêntico ao que consta no cabeçalho dos arquivos de LAI. A sintaxe é `caminho_do_arquivo:POP`, separados por vírgula para múltiplas ancestralidades.
+> * Nos campos `VCF_FILE` e `MSP_FILE`, utilize o caractere `@` no lugar do número do cromossomo. O orquestrador fará a substituição automaticamente.
+> * No campo `SUMSTATS_FILE_ANCESTRY`, o nome da população mapeada (ex: `AFR`, `EUR`) **precisa** ser idêntico ao que consta no cabeçalho dos arquivos de LAI. A sintaxe é `caminho_do_arquivo:POP`, separados por vírgula para múltiplas ancestralidades.
 
 **Exemplo de `config.ini`:**
 ```ini
