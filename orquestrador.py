@@ -86,8 +86,12 @@ config.read(config_path)
 
 project_name = config.get("Project", "PROJECT_NAME")
 
-ancestry_splitter = config.get("Scripts", "ANCESTRY_SPLITTER")
-filtrar_variantes = config.get("Scripts", "FILTRAR_VARIANTES")
+#ancestry_splitter = config.get("Scripts", "ANCESTRY_SPLITTER")
+ancestry_splitter = os.path.join(script_dir, "vcf_maker.py")
+
+
+#filtrar_variantes = config.get("Scripts", "FILTRAR_VARIANTES")
+filtrar_variantes = os.path.join(script_dir, "filtrar_variantes.py")
 
 base_vcf_file = config.get("Paths", "VCF_FILE")
 msp_file = config.get("Paths", "MSP_FILE")
