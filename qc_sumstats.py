@@ -116,7 +116,7 @@ def qc_sumstats(
     if info_col is not None:
         rename_map[info_col] = "info"
     if p_col is not None:
-        rename_map[p_col] = "p"
+        rename_map[p_col] = "p-value"
     if se_col is not None:
         rename_map[se_col] = "se"
     if n_col is not None:
@@ -126,7 +126,7 @@ def qc_sumstats(
 
     preferred_order = [
         "chr", "pos", "rsid", "effect_allele", "other_allele",
-        "beta", "or", "se", "p", "maf", "info", "n"
+        "beta", "or", "se", "p-value", "maf", "info", "n"
     ]
     output_columns = [c for c in preferred_order if c in df.columns] + [c for c in df.columns if c not in preferred_order]
 
@@ -158,13 +158,13 @@ def main():
     parser.add_argument("--beta-col", required=True, help="Nome da coluna de beta")
     parser.add_argument("--or-col", required=False, help="Nome da coluna de odds ratio (opcional)")
     parser.add_argument("--se-col", required=False, help="Nome da coluna de erro padrão (opcional)")
-    parser.add_argument("--p-col", required=False, help="Nome da coluna de p-valor (opcional)")
+    parser.add_argument("--p-col", required=True, help="Nome da coluna de p-valor")
     parser.add_argument("--maf-col", required=False, help="Nome da coluna de MAF/frequência (opcional)")
     parser.add_argument("--info-col", required=False, help="Nome da coluna de INFO de imputação (opcional)")
     parser.add_argument("--n-col", required=False, help="Nome da coluna de tamanho de amostra (opcional)")
 
     parser.add_argument("--maf", type=float, default=0.01, help="Filtro de MAF - Default: 0.01 (Opcional)")
-    parser.add_argument("--info", type=float, default=0.8, help="Filtro de INFO - Default: 0.8 (Opcional)")
+    parser.add_argument("--info", type=float, default=0.8, help="Filtro de INFO de imputação - Default: 0.8 (Opcional)")
 
     args = parser.parse_args()
 
