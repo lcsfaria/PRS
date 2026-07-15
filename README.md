@@ -82,3 +82,9 @@ python orquestrador.py --chroms 1 3 21 22
 ```bash
 python orquestrador.py --chrom-range 1 22
 ```
+
+### Passo 4: Execução Merged Hamonized (`merge_harmonized.py`)
+
+### Passo 5: Execução PRSice2 (`prs_run.py`)
+
+### Passo 6: Execução Standarize (`standardize_prs.py`)
