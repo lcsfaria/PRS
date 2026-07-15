@@ -100,3 +100,9 @@ python prs_run.py
 ```bash
 python standardize_prs.py
 ```
+
+### Passo 6: Execução da regressão (`regression_multi_prs.py`)
+
+```bash
+python regression_multi_prs.py
+```
