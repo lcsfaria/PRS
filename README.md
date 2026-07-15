@@ -81,6 +81,7 @@ With the data cleaned and the `.ini` configured, start the processing by definin
 ```bash
 python orquestrador.py --chroms 1 3 21 22
 ```
+The following steps use the config.ini as input, so you don't need to pass parameters.
 
 **To process a continuous range of chromosomes (e.g., from 1 to 22):**
 ```bash
