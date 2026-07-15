@@ -17,15 +17,12 @@ python qc_sumstats.py \
     --chr-col chr \
     --bp-col pos \
     --beta-col beta \
-    --or-col OR \
-    --se-col SE \
-    --p-col P \
+    --p-col p-value \
     --maf-col effect_allele_frequency \
-    --info-col INFO \
-    --n-col N
+    --info-col INFO
 
 O usuário deve fornecer explicitamente os nomes das colunas no arquivo de entrada.
-''' 
+'''
 
 
 def normalize_dataframe_headers(df):
@@ -46,29 +43,24 @@ def qc_sumstats(
     chr_col,
     bp_col,
     beta_col,
-    or_col=None,
+    p_col,
     maf_col=None,
     info_col=None,
-    p_col=None,
     se_col=None,
     n_col=None,
     maf_threshold=0.01,
     info_threshold=0.8
 ):
 
-    print("Lendo arquivo...")
+    print("Reading the file\n")
     df = pd.read_csv(infile, sep=None, engine="python")
     df = normalize_dataframe_headers(df)
 
-    required = [snp_col, effect_col, other_col, chr_col, bp_col, beta_col]
-    if or_col is not None:
-        required.append(or_col)
+    required = [snp_col, effect_col, other_col, chr_col, bp_col, beta_col, p_col]
     if maf_col is not None:
         required.append(maf_col)
     if info_col is not None:
         required.append(info_col)
-    if p_col is not None:
-        required.append(p_col)
     if se_col is not None:
         required.append(se_col)
     if n_col is not None:
@@ -107,10 +99,9 @@ def qc_sumstats(
         bp_col: "pos",
         effect_col: "effect_allele",
         other_col: "other_allele",
+        p_col: "p-value",
         beta_col: "beta",
     }
-    if or_col is not None:
-        rename_map[or_col] = "or"
     if maf_col is not None:
         rename_map[maf_col] = "maf"
     if info_col is not None:
@@ -135,12 +126,12 @@ def qc_sumstats(
         os.makedirs(output_dir, exist_ok=True)
     df.to_csv(outfile, sep="\t", index=False, columns=output_columns)
 
-    print(f"Inicial: {n0:,}")
-    print(f"Após remover duplicados: {n1:,}")
-    print(f"Após remover AT/TA/CG/GC: {n2:,}")
-    print(f"Após filtro de frequência: {n3:,}")
-    print(f"Após filtro INFO: {n4:,}")
-    print(f"Arquivo salvo em: {outfile}")
+    print(f"Initial: {n0:,}")
+    print(f"After duplicated filter: {n1:,}")
+    print(f"After AT/TA/CG/GC filter: {n2:,}")
+    print(f"After allele freq filter: {n3:,}")
+    print(f"After INFO filter: {n4:,}")
+    print(f"File saved in: {outfile}")
 
 
 def main():
@@ -156,15 +147,12 @@ def main():
     parser.add_argument("--chr-col", required=True, help="Nome da coluna de cromossomo")
     parser.add_argument("--bp-col", required=True, help="Nome da coluna de posição basepair")
     parser.add_argument("--beta-col", required=True, help="Nome da coluna de beta")
-    parser.add_argument("--or-col", required=False, help="Nome da coluna de odds ratio (opcional)")
-    parser.add_argument("--se-col", required=False, help="Nome da coluna de erro padrão (opcional)")
     parser.add_argument("--p-col", required=True, help="Nome da coluna de p-valor")
+    parser.add_argument("--se-col", required=False, help="Nome da coluna de erro padrão (opcional)")
     parser.add_argument("--maf-col", required=False, help="Nome da coluna de MAF/frequência (opcional)")
     parser.add_argument("--info-col", required=False, help="Nome da coluna de INFO de imputação (opcional)")
-    parser.add_argument("--n-col", required=False, help="Nome da coluna de tamanho de amostra (opcional)")
-
     parser.add_argument("--maf", type=float, default=0.01, help="Filtro de MAF - Default: 0.01 (Opcional)")
-    parser.add_argument("--info", type=float, default=0.8, help="Filtro de INFO de imputação - Default: 0.8 (Opcional)")
+    parser.add_argument("--info", type=float, default=0.8, help="Filtro de INFO - Default: 0.8 (Opcional)")
 
     args = parser.parse_args()
 
@@ -177,12 +165,11 @@ def main():
         args.chr_col,
         args.bp_col,
         args.beta_col,
-        args.or_col,
+        args.p_col,
         args.maf_col,
         args.info_col,
-        args.p_col,
         args.se_col,
-        args.n_col,
+        None,
         args.maf,
         args.info
     )

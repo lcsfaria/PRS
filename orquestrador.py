@@ -6,6 +6,7 @@ import gzip
 import shutil
 import pandas as pd
 import argparse
+from concurrent.futures import ProcessPoolExecutor
 
 '''
 como rodar 
@@ -29,7 +30,7 @@ def ensure_uncompressed_vcf(vcf_file, temp_dir):
     if os.path.exists(uncompressed_vcf):
         return uncompressed_vcf, False
 
-    print(f"Descompactando VCF para uso do vcf_maker:\n" f"  {vcf_file}\n"  f"  -> {uncompressed_vcf}")
+    print(f"Decompressing VCF:\n" f"  {vcf_file}\n"  f"  -> {uncompressed_vcf}")
 
     with open(uncompressed_vcf, "wb") as fout:
         subprocess.run(["gunzip", "-c", vcf_file],stdout=fout,check=True)
@@ -39,14 +40,14 @@ def ensure_uncompressed_vcf(vcf_file, temp_dir):
 def resolve_vcf_file(vcf_pattern, temp_dir):
 
     if vcf_pattern.endswith('.gz'):
-        print('Arquivo VCF compactado fornecido. Tentando descompactar...')
+        print('Compressed VCF file provided. Attempting to decompress it\n')
         if os.path.exists(vcf_pattern):
             return ensure_uncompressed_vcf(vcf_pattern, temp_dir)
         raise FileNotFoundError(f"Não encontrado: {vcf_pattern}")
 
     # usuário passou .vcf
     if os.path.exists(vcf_pattern):
-        print('Arquivo VCF descompactado fornecido. Usando diretamente...')
+        print('Uncompressed VCF file provided\n')
         return vcf_pattern, False
 
     # existe apenas a versão comprimida
@@ -54,7 +55,7 @@ def resolve_vcf_file(vcf_pattern, temp_dir):
         return ensure_uncompressed_vcf(vcf_pattern + '.gz', temp_dir)
 
     raise FileNotFoundError(
-        f"Não encontrado: {vcf_pattern} ou {vcf_pattern}.gz"
+        f"File not found: {vcf_pattern} ou {vcf_pattern}.gz"
     )
 
 def vcf_maker(ancestry_splitter, vcf_file, msp_file, output_folder, project_name, chrom):
@@ -71,145 +72,114 @@ def compress_and_index_vcf(vcf_file):
     subprocess.run(["bcftools", "index", "-f", gz_file], check=True)
 
 
-# ─── Argparse ────────────────────────────────────────────────────────────────
-parser = argparse.ArgumentParser(description="Pipeline de ancestralidade por cromossomo.")
-group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument("--chroms",nargs="+",type=int,metavar="N",help="Cromossomos específicos. Ex: --chroms 1 3 21 22"
-)
-group.add_argument("--chrom-range",nargs=2,type=int,metavar=("START", "END"),help="Intervalo de cromossomos. Ex: --chrom-range 1 22"
-)
-args = parser.parse_args()
+def process_chromosome(chrom, script_dir, config_path):
+    config = ConfigParser()
+    config.read(config_path)
 
-if args.chroms:
-    chromosomes = args.chroms
-else:
-    start, end = args.chrom_range
-    if start > end:
-        parser.error(f"START ({start}) não pode ser maior que END ({end}).")
-    chromosomes = list(range(start, end + 1))
+    project_name = config.get("Project", "PROJECT_NAME")
+    ancestry_splitter = os.path.join(script_dir, "vcf_maker.py")
+    filtrar_variantes = os.path.join(script_dir, "filtrar_variantes.py")
 
-print(f"Cromossomos analisados: {chromosomes}\n")
-# ─────────────────────────────────────────────────────────────────────────────
+    base_vcf_file = config.get("Paths", "VCF_FILE")
+    msp_file = config.get("Paths", "MSP_FILE")
+    output_dir = config.get("Paths", "OUTPUT_DIR")
+    sumstats = config.get("Paths", "SUMSTATS_FILE_ANCESTRY").split(",")
 
+    chrom_temp_dir = os.path.join(output_dir, "temp", f"chrom_{chrom}")
+    os.makedirs(chrom_temp_dir, exist_ok=True)
 
-script_dir = os.getcwd()
-config_path = os.path.join(script_dir, "config.ini")
-config = ConfigParser()
-config.read(config_path)
+    base_vcf_input = base_vcf_file.replace("@", str(chrom))
+    vcf_to_use, _ = resolve_vcf_file(base_vcf_input, chrom_temp_dir)
 
-project_name = config.get("Project", "PROJECT_NAME")
+    msp_file_chrom = msp_file.replace("@", str(chrom))
 
-#ancestry_splitter = config.get("Scripts", "ANCESTRY_SPLITTER")
-ancestry_splitter = os.path.join(script_dir, "vcf_maker.py")
+    print(f"\n=== Chromosome {chrom} ===")
+    print(f"Input VCF: {vcf_to_use}\n")
+    print('Running vcf_maker:\n')
+    vcf_maker(ancestry_splitter, vcf_to_use, msp_file_chrom, chrom_temp_dir, project_name, chrom)
 
-
-#filtrar_variantes = config.get("Scripts", "FILTRAR_VARIANTES")
-filtrar_variantes = os.path.join(script_dir, "filtrar_variantes.py")
-
-base_vcf_file = config.get("Paths", "VCF_FILE")
-msp_file = config.get("Paths", "MSP_FILE")
-output_dir = config.get("Paths", "OUTPUT_DIR")
-sumstats = config.get("Paths", "SUMSTATS_FILE_ANCESTRY").split(",")
-
-temp_dir = os.path.join(output_dir, "temp")
-
-os.makedirs(output_dir, exist_ok=True)
-os.makedirs(temp_dir, exist_ok=True)
-
-
-for chrom in chromosomes:
-    base_vcf_input = config.get("Paths", "VCF_FILE")
-    base_vcf_input = base_vcf_input.replace("@", str(chrom))
-
-    vcf_to_use, was_decompressed = resolve_vcf_file(base_vcf_input, temp_dir)
-
-    msp_file_chrom = config.get("Paths", "MSP_FILE")
-    msp_file_chrom = msp_file_chrom.replace("@", str(chrom))
-
-    print(f"\n=== Cromossomo {chrom} ===")
-    print(f"VCF de entrada: {vcf_to_use}\n")
-    print('Executando vcf_maker:\n')
-    vcf_maker(ancestry_splitter, vcf_to_use, msp_file_chrom, os.path.join(output_dir, temp_dir), project_name, chrom)
-
-    if os.path.abspath(vcf_to_use).startswith(os.path.abspath(temp_dir)):
+    if os.path.abspath(vcf_to_use).startswith(os.path.abspath(chrom_temp_dir)):
         try:
             os.remove(vcf_to_use)
             print(f"VCF temporário removido: {vcf_to_use}")
         except OSError as e:
-            print(f"Aviso: não foi possível remover {vcf_to_use}: {e}")
-    '''        
-    if was_decompressed:
-        try:
-            os.remove(vcf_to_use)
-        except OSError:
-            pass
-    '''
+            print(f"It was not possible to remove {vcf_to_use}: {e}\n")
+
     for info_sumstat in sumstats:
         ancestry_name = info_sumstat.split(":")
-        os.makedirs(os.path.join(output_dir, ancestry_name[-1]), exist_ok=True)
+        ancestry_out = os.path.join(output_dir, ancestry_name[-1])
+        os.makedirs(ancestry_out, exist_ok=True)
 
-        print(f'Movendo arquivos VCF para pasta {ancestry_name[-1]}\n')
-        mover = f'mv {temp_dir}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf {output_dir}/{ancestry_name[-1]}'
+        print(f'Moving VCF to {ancestry_name[-1]}\n')
+        mover = f'mv {chrom_temp_dir}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf {ancestry_out}'
         executa(mover)
 
-        print(f'Comprimindo arquivo VCF {output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf\n')
-        zip_1 = f'bgzip -f {output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf'
+        print(f'Compressing VCF {ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf\n')
+        zip_1 = f'bgzip -f {ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf'
         executa(zip_1)
 
+        print(f'Creating the intersection between VCF and Sumstats for {ancestry_name[-1]}...\n')
         intersection_filter(
             filtrar_variantes,
-            f'{output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf.gz',
-            info_sumstat.split(":")[0],'rsid',f'{output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered.vcf',
-            f'{output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered_sumstats.txt'
+            f'{ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf.gz',
+            info_sumstat.split(":")[0],
+            'rsid',
+            f'{ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered.vcf',
+            f'{ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered_sumstats.txt'
         )
+        print('Intersection Created\n')
 
-        print(f'Removendo arquivo VCF {output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf.gz\n')
-        remover_filtered = f'rm {output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf.gz'
+        print(f'Removing VCF {ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf.gz to save space\n')
+        remover_filtered = f'rm {ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}.vcf.gz'
         executa(remover_filtered)
 
-        print('Harmonizando VCF final com harmonize.py...')
+        print('Harmonizing final  VCF\n')
         harmonize_cmd = (
             f'python {os.path.join(script_dir, "harmonize.py")} '
-            f'--vcf {output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered.vcf.gz '
-            f'--sumstats {output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered_sumstats.txt '
+            f'--vcf {ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered.vcf.gz '
+            f'--sumstats {ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered_sumstats.txt '
             f'--snp-col rsid --effect-col effect_allele --other-col other_allele '
-            f'--out {output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered_harmonized.vcf.gz'
+            f'--out {ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered_harmonized.vcf.gz'
         )
         executa(harmonize_cmd)
 
-        remover_filtered = f'rm {output_dir}/{ancestry_name[-1]}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered.vcf'
+        print(f'Removing VCF {ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered.vcf.gz to save space\n')
+        remover_filtered = f'rm {ancestry_out}/{project_name}_Chr{chrom}_{ancestry_name[-1]}_filtered.vcf*'
         executa(remover_filtered)
 
 
-#aqui junta arquivos de sumstats e VCFs por ancestralidade
-for info_sumstat in sumstats:
-    ancestry_name = info_sumstat.split(":")
+def main():
+    parser = argparse.ArgumentParser(description="Pipeline de ancestralidade por cromossomo.")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--chroms", nargs="+", type=int, metavar="N", help="Cromossomos específicos. Ex: --chroms 1 3 21 22")
+    group.add_argument("--chrom-range", nargs=2, type=int, metavar=("START", "END"), help="Intervalo de cromossomos. Ex: --chrom-range 1 22")
+    parser.add_argument("--workers", type=int, default=1, help="Número de cromossomos a processar em paralelo (padrão: 1)")
+    args = parser.parse_args()
 
-    vcf_files = sorted(Path(f'{output_dir}/{ancestry_name[-1]}/').glob("*harmonized*.vcf.gz"))
-    sumstats_files = sorted(Path(f'{output_dir}/{ancestry_name[-1]}/').glob("*filtered_sumstats.txt"))
-    print(vcf_files)
-    print(sumstats_files)
+    if args.chroms:
+        chromosomes = args.chroms
+    else:
+        start, end = args.chrom_range
+        if start > end:
+            parser.error(f"START ({start}) não pode ser maior que END ({end}).")
+        chromosomes = list(range(start, end + 1))
 
-    dfs = []
-    for f in sumstats_files:
-        print(f"  -> {f.name}")
-        dfs.append(pd.read_csv(f, sep="\t"))
+    print(f"Cromossomos analisados: {chromosomes}")
+    print(f"Workers: {args.workers}\n")
 
-    merged_sumstats = pd.concat(dfs, ignore_index=True)
-    merged_sumstats.to_csv(
-        f'{output_dir}/{ancestry_name[-1]}/{ancestry_name[-1]}_merged_sumstats.txt',
-        sep="\t", index=False
-    )
+    script_dir = os.getcwd()
+    config_path = os.path.join(script_dir, "config.ini")
 
-    vcf_list_file = f"{output_dir}/{ancestry_name[-1]}/{ancestry_name[-1]}_vcf_list.txt"
-    OUTPUT_VCF = f"{output_dir}/{ancestry_name[-1]}/{ancestry_name[-1]}_All_Chr_merged.vcf.gz"
+    if args.workers > 1 and len(chromosomes) > 1:
+        with ProcessPoolExecutor(max_workers=args.workers) as executor:
+            list(executor.map(process_chromosome, chromosomes, [script_dir] * len(chromosomes), [config_path] * len(chromosomes)))
+    else:
+        for chrom in chromosomes:
+            process_chromosome(chrom, script_dir, config_path)
 
-    with open(vcf_list_file, "w") as f:
-        for vcf in vcf_files:
-            f.write(str(vcf) + "\n")
 
-    print("\nConcatenando VCFs...")
-    subprocess.run(["bcftools", "concat", "-f", vcf_list_file, "-Oz", "-o", OUTPUT_VCF], check=True)
-    subprocess.run(["bcftools", "index", "-t", OUTPUT_VCF], check=True)
-    subprocess.run(['plink', '--vcf', OUTPUT_VCF, '--make-bed', '--vcf-half-call', 'r',
-        '--double-id', '--out', f"{output_dir}/{ancestry_name[-1]}/{ancestry_name[-1]}_All_Chr_merged"])
+if __name__ == "__main__":
+    main()
+
+
+

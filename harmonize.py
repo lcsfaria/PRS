@@ -268,7 +268,7 @@ def main():
 
     args = parser.parse_args()
 
-    print("Loading summary statistics...")
+    print("Loading summary statistics\n")
 
     sumstats_dict = load_sumstats(
         args.sumstats,
@@ -277,7 +277,7 @@ def main():
         args.other_col
     )
 
-    print("Harmonizing VCF...")
+    print("Harmonizing VCF\n")
 
     # Determine temporary uncompressed output path if user requested a .vcf.gz
     out_arg = args.out
@@ -295,7 +295,7 @@ def main():
     gz_file = None
     # If user requested gzipped output, compress and index the temporary file
     if out_arg.endswith('.vcf.gz'):
-        print("Compressing and indexing...")
+        print("Compressing and indexing\n")
         # remove existing final gz if present to ensure overwrite
         if os.path.exists(out_arg):
             os.remove(out_arg)
@@ -322,7 +322,7 @@ def main():
 
     print(f"\nOutput: {gz_file}")
     if changes:
-        print(f"Changes file: {change_file}")
+        print(f"Changes file: {change_file}\n")
 
 
 if __name__ == "__main__":

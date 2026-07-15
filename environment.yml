@@ -9,3 +9,12 @@ dependencies:
   - pysam
   - bcftools
   - plink
+  - matplotlib
+  - scikit-learn
+  - statsmodels
+  - Pillow
+  - pyparsing
+  - scipy
+  - scikit-learn
+  - statsmodels
+  - matplotlib
