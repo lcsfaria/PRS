@@ -48,14 +48,30 @@ Fill in the `config.ini` file with your data paths and column definitions.
 ```ini
 [Project]
 PROJECT_NAME = Epigen
+
 [Paths]
-VCF_FILE = /media/lucasf/NAS/PRS_GP2/Database/GeneticData/Phased_vcf/Phased_1KGP_Peru_Chr@.vcf
-MSP_FILE = /media/lucasf/NAS/PRS_GP2/Database/LA/@_query_results.msp
-# The population name must match the LAI header
-SUMSTATS_FILE_ANCESTRY = /media/lucasf/NAS/PRS_GP2/Sumstat/Rizig_et_al_2023_AFR_AAC_metaGWAS_no23andMe_hg38_QCed.txt:AFR,/media/lucasf/NAS/PRS_GP2/Sumstat/GP2_EUR_ONLY_HG38_12162024_rsID_QCed.tsv:EUR
-OUTPUT_DIR = /home/lucasf/PRS-main/Resultado
-[Columns]
-SNP_COL = rsid
+PRSICE = /home/lucasf/Desktop/Scripts/PRSice_linux
+#uses @ in chr number
+VCF_FILE = /home/lucasf/Desktop/Scripts/Data/LAI_PD/EPIGEN_chr@_Phased_with_reference_panel_1kgp_and_peruvian_natives_no_admixed_maf0_001.vcf.gz
+MSP_FILE = /home/lucasf/Desktop/Scripts/Data/LAI_PD/Chr@_query_results.msp
+
+#The pop name must be the same that .msp header
+SUMSTATS_FILE_ANCESTRY = /home/lucasf/Desktop/Scripts/Sumstats/Rizig_et_al_2023_AFR_AAC_metaGWAS_no23andMe_hg38_QCed.txt:AFR,/home/lucasf/Desktop/Scripts/Sumstats/TesteEUR.txt:EUR
+OUTPUT_DIR = /home/lucasf/Desktop/Scripts/Results
+
+
+[PRS]
+#None if you dont have LD reference files
+LD_POP = None
+#File with individual FID,IID and status (0 or 1) columns
+PHENO_FILE = /home/lucasf/Desktop/Scripts/Data/LAI_PD/phenfile_all_toy.tsv
+BINARY_TARGET = T
+COVARIATE_FILE = None
+COVARIATE_TO_INCLUDE = None
+
+# CENTER, SET_ZERO, MEAN_IMPUTE
+PRS_MISSING = SET_ZERO  
+SCORE_PRS= sum
 ```
 
 ### Step 3: Running the Orchestrator (`orquestrador.py`)
