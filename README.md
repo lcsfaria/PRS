@@ -81,12 +81,14 @@ With the data cleaned and the `.ini` configured, start the processing by definin
 ```bash
 python orquestrador.py --chroms 1 3 21 22
 ```
-The following steps use the config.ini as input, so you don't need to pass parameters.
+
 
 **To process a continuous range of chromosomes (e.g., from 1 to 22):**
 ```bash
 python orquestrador.py --chrom-range 1 22
 ```
+
+The following steps (4 to 7) use the config.ini as input, so you don't need to pass parameters.
 
 ### Step 4: Running Merge Harmonized (`merge_harmonized.py`)
 ```bash
