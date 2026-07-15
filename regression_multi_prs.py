@@ -73,10 +73,10 @@ dfs = []
 
 for info_sumstat in sumstats:
     ancestry_name = info_sumstat.split(":")[-1]
-    prs_best = f"{output_dir}/{ancestry_name}/{project_name}_{ancestry_name}_PRS_run.best.normalized"
+    prs_best = f"{output_dir}/{ancestry_name}/{project_name}_{ancestry_name}_PRS_run.best.standardized"
     df = pd.read_csv(prs_best, sep=r"\s+")
 
-    df = df.rename(columns={"Normalized_PRS": f"PRS_{ancestry_name}"})
+    df = df.rename(columns={"standardized_PRS": f"PRS_{ancestry_name}"})
     df = df[["FID", "IID", f"PRS_{ancestry_name}"]]
     dfs.append(df)
 
