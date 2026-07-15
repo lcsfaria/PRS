@@ -6,7 +6,6 @@ conda activate prs_env
 ```
 ---
 ## How to Use
-The workflow is divided into three main steps: Quality Control (QC) of the SumStats, project parameter configuration, and running the orchestrator.
 
 ### Step 1: Standardizing Summary Statistics (`qc_sumstat.py`)
 Before running the main analysis, the Summary Statistics files need to be standardized.
