@@ -50,13 +50,13 @@ Fill in the `config.ini` file with your data paths and column definitions.
 PROJECT_NAME = Epigen
 
 [Paths]
-PRSICE = /home/lucasf/Desktop/Scripts/PRSice_linux
+PRSICE = /home/Scripts/PRSice_linux
 #uses @ in chr number
-VCF_FILE = /home/lucasf/Desktop/Scripts/Data/LAI_PD/EPIGEN_chr@_Phased_with_reference_panel_1kgp_and_peruvian_natives_no_admixed_maf0_001.vcf.gz
-MSP_FILE = /home/lucasf/Desktop/Scripts/Data/LAI_PD/Chr@_query_results.msp
+VCF_FILE = /Data/LAI_PD/EPIGEN_chr@_Phased_with_reference_panel_1kgp_and_peruvian_natives_no_admixed_maf0_001.vcf.gz
+MSP_FILE = /Data/LAI_PD/Chr@_query_results.msp
 
 #The pop name must be the same that .msp header
-SUMSTATS_FILE_ANCESTRY = /home/lucasf/Desktop/Scripts/Sumstats/Rizig_et_al_2023_AFR_AAC_metaGWAS_no23andMe_hg38_QCed.txt:AFR,/home/lucasf/Desktop/Scripts/Sumstats/TesteEUR.txt:EUR
+SUMSTATS_FILE_ANCESTRY = /Sumstats/Rizig_et_al_2023_AFR_AAC_metaGWAS_no23andMe_hg38_QCed.txt:AFR,/Sumstats/TesteEUR.txt:EUR
 OUTPUT_DIR = /home/lucasf/Desktop/Scripts/Results
 
 
@@ -64,13 +64,13 @@ OUTPUT_DIR = /home/lucasf/Desktop/Scripts/Results
 #None if you dont have LD reference files
 LD_POP = None
 #File with individual FID,IID and status (0 or 1) columns
-PHENO_FILE = /home/lucasf/Desktop/Scripts/Data/LAI_PD/phenfile_all_toy.tsv
+PHENO_FILE = /Data/phenfile_all_toy.tsv
 BINARY_TARGET = T
 COVARIATE_FILE = None
 COVARIATE_TO_INCLUDE = None
 
 # CENTER, SET_ZERO, MEAN_IMPUTE
-PRS_MISSING = SET_ZERO  
+PRS_MISSING = SET_ZERO
 SCORE_PRS= sum
 ```
 
