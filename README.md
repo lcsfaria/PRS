@@ -1,111 +1,204 @@
-## Installation
-Clone the repository and create the virtual environment using `conda` to ensure all necessary dependencies are installed correctly:
+# PRS Pipeline for Multiple Ancestries
+
+This repository contains a set of Python scripts to:
+
+- prepare and filter VCF files by chromosome;
+- harmonize summary statistics with VCF variants;
+- run PRSice for one or more ancestries;
+- standardize PRS scores;
+- run logistic regression and generate ROC curves.
+
+The main workflow is:
+
+1. prepare the configuration file;
+2. process the VCFs by chromosome;
+3. run PRSice;
+4. standardize the PRS scores;
+5. run the regression with multiple PRS.
+
+---
+
+## Requirements
+
+- Linux / Ubuntu
+- Python 3.10
+- conda or mamba
+- bcftools
+- plink
+- PRSice Linux executable binary (PRSice_linux folder)
+
+---
+
+## Environment Installation
+
+In the project directory, run:
+
 ```bash
 conda env create -f environment.yml
 conda activate prs_env
 ```
----
-## How to Use
 
-### Step 1: Standardizing Summary Statistics (`qc_sumstat.py`)
-Before running the main analysis, the Summary Statistics files need to be standardized.
+If needed, also install manually:
 
-**Basic usage example:**
 ```bash
-python qc_sumstat.py --input gwas_raw.txt --output gwas_qced.txt --snp-col rsID --effect-col A1 --other-col A2 --chr-col CHR --bp-col BP --beta-col BETA
+pip install pandas pysam matplotlib scikit-learn statsmodels scipy
 ```
 
-**Available Parameters:**
+---
 
-*Required:*
-* `--input`: Input file.
-* `--output`: Output file.
-* `--snp-col`: SNP column name (rsID).
-* `--effect-col`: Effect allele column name.
-* `--other-col`: Other allele column name (reference allele).
-* `--chr-col`: Chromosome column name.
-* `--bp-col`: Position (basepair) column name.
-* `--beta-col`: Beta column name (effect size).
+## Configuration File
 
-*Optional:*
-* `--or-col`: Odds ratio column name.
-* `--se-col`: Standard error column name.
-* `--p-col`: P-value column name.
-* `--maf-col`: MAF/frequency column name.
-* `--info-col`: Imputation INFO column name.
-* `--n-col`: Sample size column name.
-* `--maf`: MAF filter (Default: `0.01`).
-* `--info`: INFO filter (Default: `0.8`).
+Edit the main configuration file:
 
-### Step 2: Configuration (`config.ini`)
-Fill in the `config.ini` file with your data paths and column definitions.
+```text
+config.ini
+```
 
-> **Important Notes:**
-> * In the `VCF_FILE` and `MSP_FILE` fields, use the `@` character in place of the chromosome number. The orchestrator will handle the substitution automatically.
-> * In the `SUMSTATS_FILE_ANCESTRY` field, the mapped population name (e.g., `AFR`, `EUR`) **must** be identical to what appears in the LAI files' header. The syntax is `file_path:POP`, separated by commas for multiple ancestries.
+Example structure:
 
-**Example `config.ini`:**
 ```ini
 [Project]
 PROJECT_NAME = Epigen
 
 [Paths]
-PRSICE = /home/Scripts/PRSice_linux
-#uses @ in chr number
-VCF_FILE = /Data/LAI_PD/EPIGEN_chr@_Phased_with_reference_panel_1kgp_and_peruvian_natives_no_admixed_maf0_001.vcf.gz
-MSP_FILE = /Data/LAI_PD/Chr@_query_results.msp
-
-#The pop name must be the same that .msp header
-SUMSTATS_FILE_ANCESTRY = /Sumstats/Rizig_et_al_2023_AFR_AAC_metaGWAS_no23andMe_hg38_QCed.txt:AFR,/Sumstats/TesteEUR.txt:EUR
-OUTPUT_DIR = /home/lucasf/Desktop/Scripts/Results
-
+PRSICE = /path/to/PRSice_linux
+VCF_FILE = /path/to/VCF/file_chr@.vcf.gz
+MSP_FILE = /path/to/file_chr@.msp
+SUMSTATS_FILE_ANCESTRY = /path/to/sumstats1.txt:AFR,/path/to/sumstats2.txt:EUR
+OUTPUT_DIR = /path/to/Results
 
 [PRS]
-#None if you dont have LD reference files
 LD_POP = None
-#File with individual FID,IID and status (0 or 1) columns
-PHENO_FILE = /Data/phenfile_all_toy.tsv
+PHENO_FILE = /path/to/phenfile.tsv
 BINARY_TARGET = T
 COVARIATE_FILE = None
 COVARIATE_TO_INCLUDE = None
-
-# CENTER, SET_ZERO, MEAN_IMPUTE
 PRS_MISSING = SET_ZERO
-SCORE_PRS= sum
+SCORE_PRS = sum
 ```
 
-### Step 3: Running the Orchestrator (`orquestrador.py`)
-With the data cleaned and the `.ini` configured, start the processing by defining which chromosomes you want to analyze.
+### Important Notes
 
-**To process specific chromosomes (space-separated):**
+- The `LD_POP` field can be `None` if there are no LD reference files.
+- The phenotype file must have at least the following columns:
+  - `FID`
+  - `IID`
+  - `status`
+- The `status` value must be `0` or `1`.
+- If there are no covariates, keep:
+  - `COVARIATE_FILE = None`
+  - `COVARIATE_TO_INCLUDE = None`
+
+---
+
+## Script Structure
+
+### 1. orquestrador.py
+
+Responsible for:
+
+- splitting the VCF by chromosome;
+- generating VCFs by ancestry;
+- filtering variants against the sumstats;
+- harmonizing the VCF files;
+- preparing the files required for PRSice.
+
+Example execution:
+
 ```bash
 python orquestrador.py --chroms 1 3 21 22
 ```
 
+or
 
-**To process a continuous range of chromosomes (e.g., from 1 to 22):**
 ```bash
 python orquestrador.py --chrom-range 1 22
 ```
 
-The following steps (4 to 7) use the config.ini as input, so you don't need to pass parameters.
+### 2. prs_run.py
 
-### Step 4: Running Merge Harmonized (`merge_harmonized.py`)
-```bash
-python merge_harmonized.py
-```
+Runs PRSice for each ancestry defined in `SUMSTATS_FILE_ANCESTRY`.
 
-### Step 5: Running PRSice2 (`prs_run.py`)
+Example:
+
 ```bash
 python prs_run.py
 ```
 
-### Step 6: Running Standardize (`standardize_prs.py`)
+### 3. standardize_prs.py
+
+Standardizes the PRS scores generated by PRSice and creates a file with the extension:
+
+```text
+*.best.standardized
+```
+
+Example:
+
 ```bash
 python standardize_prs.py
 ```
 
-### Step 7: Running Regression (`regression_multi_prs.py`)
+### 4. regression_multi_prs.py
+
+Combines the PRS from different ancestries and performs:
+
+- logistic regression;
+- AUC calculation;
+- ROC curve generation;
+- combined score distribution plots.
+
+Example:
+
 ```bash
 python regression_multi_prs.py
 ```
+
+---
+
+## Output Files
+
+Results are saved in folders inside `Results/`, for example:
+
+```text
+Results/
+  AFR/
+  EUR/
+  combined/
+```
+
+Typical generated files:
+
+- `*_PRS_run.best`
+- `*_PRS_run.best.standardized`
+- `*_PRS_run.summary`
+- `*_PRS_total_roc_curve.png`
+- `*_PRS_total_distribuicao_prs.png`
+- `*_comparacao_estatistica_*.txt`
+
+---
+
+## Usage Tips
+
+- Always run the scripts from the project root.
+- Check that the paths in `config.ini` exist before running.
+- If a script fails with a dependency error, confirm that the environment was activated correctly.
+- If you get a regression error such as `endog must be in the unit interval`, check that the `status` column contains only `0` and `1`.
+
+---
+
+## Complete Workflow Example
+
+```bash
+conda activate prs_env
+python orquestrador.py --chrom-range 1 22
+python prs_run.py
+python standardize_prs.py
+python regression_multi_prs.py
+```
+
+---
+
+## General Note
+
+This pipeline was designed to work with multiple ancestries and multiple PRS, but it can be adapted to other datasets, as long as the input files are in the expected format.
